@@ -1,14 +1,8 @@
 from typing import Optional
 
 from interactions import (
-    Color,
-    TYPE_MESSAGEABLE_CHANNEL,
-    Embed,
     Extension,
     InteractionContext,
-    OptionType,
-    SlashCommandOption,
-    Timestamp,
     slash_command,
     ChannelSelectMenu,
     ChannelType,

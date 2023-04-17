@@ -3,7 +3,6 @@ from typing import Optional
 from interactions import (
     TYPE_MESSAGEABLE_CHANNEL,
     ChannelType,
-    Color,
     Embed,
     Extension,
     InteractionContext,
