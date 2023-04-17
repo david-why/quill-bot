@@ -2,7 +2,7 @@ from typing import Optional
 
 from interactions import (
     ChannelSelectMenu,
-    ChannelType,ComponentContext,
+    ChannelType,ComponentContext,GuildText,
     Embed,
     Extension,
     InteractionContext,
@@ -74,8 +74,21 @@ class SettingsCommandExtension(Extension):
                 embeds=error_embed('You must have the Manage Server permission!'),
                 ephemeral=True,
             )
-        self.bot.logger.info(repr(ctx.kwargs))
-        await ctx.send('Feature in development', ephemeral=True)
+        guild = ctx.guild
+        assert guild
+        guild_id = guild.id
+        channels = ctx.values
+        if not channels:
+            await ctx.send(embeds=error_embed('Unknown error -14'), ephemeral=True)
+            return
+        channel: GuildText = channels[0]
+        if not channel:
+            await ctx.send(embeds=error_embed('Unknown error -15'), ephemeral=True)
+            return
+        settings = self.bot.database.get_guild_settings(guild_id)
+        settings.quotes_channel = channel.id
+        self.bot.database.set_guild_settings(guild_id, settings)
+        await ctx.send(f'Updated quotes channel to {channel.mention}!')
 
 
 def setup(bot: CustomClient):
