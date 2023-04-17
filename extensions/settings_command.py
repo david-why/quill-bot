@@ -1,15 +1,18 @@
 from typing import Optional
 
 from interactions import (
+    ChannelSelectMenu,
+    ChannelType,ComponentContext,
+    Embed,
     Extension,
     InteractionContext,
+    Permissions,component_callback,
     slash_command,
-    ChannelSelectMenu,
-    ChannelType,
 )
-from util import error_embed
-from database import Settings
+
 from client import CustomClient
+from database import Settings
+from util import error_embed
 
 
 class SettingsCommandExtension(Extension):
@@ -24,6 +27,15 @@ class SettingsCommandExtension(Extension):
                 ephemeral=True,
             )
             return
+        member = ctx.member
+        if member is None:
+            await ctx.send(embeds=error_embed('Unknown error -13'), ephemeral=True)
+            return
+        if not member.has_permission(Permissions.MANAGE_GUILD):
+            await ctx.send(
+                embeds=error_embed('You must have the Manage Server permission!'),
+                ephemeral=True,
+            )
         guild_id = guild.id
         settings = self.bot.database.get_guild_settings(guild_id)
 
@@ -44,6 +56,26 @@ class SettingsCommandExtension(Extension):
             placeholder=f'Current: {channel_text}',
             custom_id='settings_channel',
         )
+        embed = Embed(
+            title='Server settings',
+            description='Here you can change settings for the Quill bot.',
+        )
+
+        return await ctx.send(embeds=embed, components=select)
+
+    @component_callback('settings_channel')
+    async def settings_channel_callback(self, ctx: ComponentContext):
+        member = ctx.member
+        if member is None:
+            await ctx.send(embeds=error_embed('Unknown error -13'), ephemeral=True)
+            return
+        if not member.has_permission(Permissions.MANAGE_GUILD):
+            await ctx.send(
+                embeds=error_embed('You must have the Manage Server permission!'),
+                ephemeral=True,
+            )
+        self.bot.logger.info(repr(ctx.kwargs))
+        await ctx.send('Feature in development', ephemeral=True)
 
 
 def setup(bot: CustomClient):
