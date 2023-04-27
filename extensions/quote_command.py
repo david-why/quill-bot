@@ -4,6 +4,7 @@ from interactions import (
     TYPE_MESSAGEABLE_CHANNEL,
     ChannelType,
     Embed,
+    EmbedField,
     Extension,
     InteractionContext,
     OptionType,
@@ -47,6 +48,12 @@ class QuoteCommandExtension(Extension):
                 description='The quote text',
             ),
             SlashCommandOption(
+                name='context',
+                type=OptionType.STRING,
+                description='The context for this quote (why did they say this)',
+                required=False,
+            ),
+            SlashCommandOption(
                 name='channel',
                 type=OptionType.CHANNEL,
                 description='The channel to send the quote, defaults to server setting',
@@ -69,10 +76,16 @@ class QuoteCommandExtension(Extension):
             timestr: str = args['time']
             ts = self.parse_time(timestr)
             if ts is None:
-                await ctx.send(embeds=error_embed(f'The time string given is unparseable: {timestr!r}'), ephemeral=True)
+                await ctx.send(
+                    embeds=error_embed(
+                        f'The time string given is unparseable: {timestr!r}'
+                    ),
+                    ephemeral=True,
+                )
                 return
         else:
             ts = Timestamp.now()
+        context: Optional[str] = args.get('context')
         if 'channel' in args:
             channel: TYPE_MESSAGEABLE_CHANNEL = args['channel']
         else:
@@ -95,8 +108,11 @@ class QuoteCommandExtension(Extension):
         if quoter is None:
             await ctx.send(embeds=error_embed('Unknown error -2'), ephemeral=True)
             return
+        fields = []
+        if context:
+            fields.append(EmbedField('Context', context))
         quote_embed = Embed(
-            title=f'Quote by {origin}', description=quote, timestamp=ts
+            title=f'Quote by {origin}', description=quote, fields=fields, timestamp=ts
         ).set_footer('Quoter: ' + quoter.display_name, quoter.display_avatar.url)
         # channel = ctx.channel
         await channel.send(embeds=quote_embed)

@@ -45,7 +45,7 @@ class QuoteContextExtension(Extension):
             await ctx.send(embeds=error_embed('Unknown error -2'), ephemeral=True)
             return
         embed = Embed(
-            title=f'Quote by {origin.display_name}',
+            title=f'Quote by @{origin.display_name}',
             description=quote,
             timestamp=ts,
             url=message.jump_url,

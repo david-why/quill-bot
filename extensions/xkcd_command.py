@@ -206,7 +206,20 @@ class XKCDCommandExtension(Extension):
         except XKCDError as exc:
             await ctx.send(embeds=error_embed(exc.msg), ephemeral=True)
             return
-        await ctx.send(comic.alt, ephemeral=True)
+        button = Button(
+            style=ButtonStyle.SECONDARY,
+            label='Show to everyone',
+            custom_id='xkcd_show_alt',
+        )
+        await ctx.send(comic.alt, components=[button], reply_to=msg, ephemeral=True)
+
+    @component_callback('xkcd_show_alt')
+    async def xkcd_show_alt_callback(self, ctx: ComponentContext):
+        msg = ctx.message
+        if msg is None:
+            await ctx.send(embeds=error_embed('Unknown error -16'), ephemeral=True)
+            return
+        await ctx.send(msg.content, reply_to=msg.get_referenced_message())
 
 
 def setup(bot: CustomClient):

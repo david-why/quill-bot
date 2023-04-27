@@ -1,2 +1,6 @@
 discord-py-interactions>=5.0<6.0
 python-dotenv
+openai>=0.27.0
+pyjwt>=1.0.1
+cryptography
+discord-markdown
