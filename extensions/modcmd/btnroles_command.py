@@ -275,17 +275,6 @@ class ButtonRolesCommandExtension(Extension):
         if not isinstance(send_channel, TYPE_MESSAGEABLE_CHANNEL):
             return await ctx.send('ERORR: Channel not messageable!')
         await self.send_roles(send_channel, pending)
-        # embed = Embed(title=pending.title, description=pending.content)
-        # roles = []
-        # for role_id, text in pending.roles:
-        #     roles.append(
-        #         Button(
-        #             style=ButtonStyle.SECONDARY,
-        #             label=text,
-        #             custom_id=f'br_@{role_id}',
-        #         )
-        #     )
-        # await send_channel.send(embeds=embed, components=roles)
         await ctx.send('Success! Check out the message now!')
 
     @listen()
@@ -298,10 +287,6 @@ class ButtonRolesCommandExtension(Extension):
         if member is None:
             self.bot.logger.warn(f'Member is None for {ctx.custom_id}!')
             return
-        # guild = ctx.guild
-        # if guild is None:
-        #     self.bot.logger.warn(f'Guild is None for {ctx.custom_id}!')
-        #     return
         func = member.add_role
         is_removing = member.has_role(role_id)
         if is_removing:

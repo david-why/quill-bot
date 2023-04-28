@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from typing import Optional
+from typing import Optional, List
 import time
 from util import tomorrow
 from graph import PollResponse
@@ -16,12 +16,19 @@ CREATE_USERS = '''CREATE TABLE IF NOT EXISTS users (
 
 
 class Settings:
-    __slots__ = 'quotes_channel', 'teams_auth', 'teams_channel', 'teams_chat_id'
+    __slots__ = (
+        'quotes_channel',
+        'teams_auth',
+        'teams_channel',
+        'teams_chat_id',
+        'autoroles',
+    )
 
     quotes_channel: Optional[int]
     teams_auth: Optional[PollResponse]
     teams_channel: Optional[int]
     teams_chat_id: Optional[str]
+    autoroles: List[int]
 
     def __init__(
         self,
@@ -29,11 +36,13 @@ class Settings:
         teams_auth: Optional[PollResponse] = None,
         teams_channel: Optional[int] = None,
         teams_chat_id: Optional[str] = None,
+        autoroles: Optional[List[int]] = None,
     ) -> None:
         self.quotes_channel = quotes_channel
         self.teams_auth = teams_auth
         self.teams_channel = teams_channel
         self.teams_chat_id = teams_chat_id
+        self.autoroles = autoroles or []
 
     @classmethod
     def load(cls, data: bytes) -> 'Settings':
@@ -43,6 +52,7 @@ class Settings:
         obj.teams_auth = d.get('teams_auth')
         obj.teams_channel = d.get('teams_channel')
         obj.teams_chat_id = d.get('teams_chat_id')
+        obj.autoroles = d.get('autoroles') or []
         return obj
 
     def dump(self) -> bytes:
@@ -52,6 +62,7 @@ class Settings:
                 'teams_auth': self.teams_auth,
                 'teams_channel': self.teams_channel,
                 'teams_chat_id': self.teams_chat_id,
+                'autoroles': self.autoroles,
             }
         ).encode()
 

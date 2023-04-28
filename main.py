@@ -16,7 +16,7 @@ kwargs = dict(
     activity='/quote | /chat',
     total_shards=int(os.getenv('SHARDS', 1)),
     shard_id=int(os.getenv('SHARD_ID', 0)),
-    intents=Intents.DEFAULT | Intents.MESSAGE_CONTENT,
+    intents=Intents.DEFAULT | Intents.MESSAGE_CONTENT | Intents.GUILD_MEMBERS,
 )
 
 if DEBUG:

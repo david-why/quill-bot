@@ -2,7 +2,7 @@
 A bot designed for quoting but ended up doing a bit more.
 
 ## Adding to your server
-Add the bot to your server with [this link](https://discord.com/api/oauth2/authorize?client_id=1096665287597768704&permissions=275146344448&scope=applications.commands%20bot).
+Add the bot to your server with [this link](https://discord.com/api/oauth2/authorize?client_id=1096665287597768704&permissions=275146606592&scope=applications.commands%20bot).
 
 ## Commands
 - `/quote from quote [channel]`: Adds a quote to the \[channel\], serverwide quotes channel, or current channel, whichever one exists.
