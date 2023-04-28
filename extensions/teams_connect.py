@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Dict, Tuple, cast
+from typing import Dict, Optional, Tuple, cast
 
 import aiohttp
 from discord_markdown.discord_markdown import convert_to_html
@@ -13,7 +13,9 @@ from interactions import (
     Extension,
     Guild,
     InteractionContext,
+    OptionType,
     Permissions,
+    SlashCommandOption,
     component_callback,
     listen,
     slash_command,
@@ -37,7 +39,7 @@ class TeamsConnectorExtension(Extension):
         cast(None, bot)
         self.database = {}
 
-    def get_embed_components(self, guild: Guild):
+    async def get_embed_components(self, guild: Guild):
         guild_id = guild.id
         settings = self.bot.database.get_guild_settings(guild_id)
         teams_auth = settings.teams_auth
@@ -66,12 +68,24 @@ class TeamsConnectorExtension(Extension):
         channel_name = 'No channel connected'
         channel_id = settings.teams_channel
         if channel_id is not None:
-            channel = guild.get_channel(channel_id)
+            channel = await guild.fetch_channel(channel_id)
             if channel is not None:
                 channel_name = f'Connected to {channel.mention}'
+        conversation_name = 'No Teams chat connected'
+        conversation_id = settings.teams_chat_id
+        if conversation_id is not None:
+            conversation_name = f'Connected to Teams chat **{conversation_id}**'
+            button = Button(
+                style=ButtonStyle.LINK,
+                label='View Teams chat',
+                url='https://teams.microsoft.com/_#/conversations'
+                f'/{conversation_id}?ctx=chat',
+            )
+            components.append(button)
         fields = [
             EmbedField('Auth status', auth_status),
             EmbedField('Connected channel', channel_name),
+            EmbedField('Connected chat', conversation_name),
         ]
         embed = Embed(title='Teams Connector status', fields=fields)
         return embed, components
@@ -80,8 +94,18 @@ class TeamsConnectorExtension(Extension):
         'teams',
         description='Connect with teams',
         default_member_permissions=Permissions.MANAGE_GUILD,
+        options=[
+            SlashCommandOption(
+                name='conversation',
+                type=OptionType.STRING,
+                description='The Teams conversation ID',
+                required=False,
+            )
+        ],
     )
     async def teams_command(self, ctx: InteractionContext):
+        args = ctx.kwargs
+        conversation: Optional[str] = args.get('conversation')
         guild = ctx.guild
         if guild is None:
             await ctx.send('You can only do this in a server!', ephemeral=True)
@@ -96,7 +120,11 @@ class TeamsConnectorExtension(Extension):
                 ephemeral=True,
             )
             return
-        embed, components = self.get_embed_components(guild)
+        if conversation:
+            settings = self.bot.database.get_guild_settings(guild.id)
+            settings.teams_chat_id = conversation
+            return await ctx.send(f'Teams conversation ID set to **{conversation}**!')
+        embed, components = await self.get_embed_components(guild)
         await ctx.send(embeds=embed, components=components)
 
     @component_callback('teams_unauth')
@@ -117,7 +145,7 @@ class TeamsConnectorExtension(Extension):
         settings = self.bot.database.get_guild_settings(guild_id)
         settings.teams_auth = None
         self.bot.database.set_guild_settings(guild_id, settings)
-        embed, components = self.get_embed_components(guild)
+        embed, components = await self.get_embed_components(guild)
         await ctx.edit_origin(embeds=embed, components=components)
 
     @component_callback('teams_auth')
@@ -182,7 +210,7 @@ class TeamsConnectorExtension(Extension):
         settings.teams_auth = poll
         self.bot.database.set_guild_settings(guild_id, settings)
         del self.database[guild_id]
-        embed, components = self.get_embed_components(guild)
+        embed, components = await self.get_embed_components(guild)
         assert ctx.message
         await ctx.message.edit(embeds=embed, components=components)
 
