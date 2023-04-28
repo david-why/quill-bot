@@ -1,9 +1,9 @@
 import json
 import sqlite3
-from typing import Optional, List
-import time
-from util import tomorrow
+from typing import List, Optional
+
 from graph import PollResponse
+from util import tomorrow
 
 CREATE_SETTINGS = '''CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY UNIQUE,
@@ -15,6 +15,37 @@ CREATE_USERS = '''CREATE TABLE IF NOT EXISTS users (
 );'''
 
 
+class MessageTemplate:
+    __slots__ = 'content', 'title', 'body'
+
+    content: Optional[str]
+    title: Optional[str]
+    body: Optional[str]
+
+    def __init__(
+        self,
+        content: Optional[str] = None,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+    ):
+        self.content = content
+        self.title = title
+        self.body = body
+
+    @classmethod
+    def load(cls, data: Optional[dict]) -> Optional['MessageTemplate']:
+        if data is None:
+            return
+        obj = cls()
+        obj.content = data.get('content')
+        obj.title = data.get('title')
+        obj.body = data.get('body')
+        return obj
+
+    def dump(self) -> dict:
+        return {'content': self.content, 'title': self.title, 'body': self.body}
+
+
 class Settings:
     __slots__ = (
         'quotes_channel',
@@ -22,6 +53,9 @@ class Settings:
         'teams_channel',
         'teams_chat_id',
         'autoroles',
+        'welcome_msg',
+        'goodbye_msg',
+        'greet_channel',
     )
 
     quotes_channel: Optional[int]
@@ -29,6 +63,9 @@ class Settings:
     teams_channel: Optional[int]
     teams_chat_id: Optional[str]
     autoroles: List[int]
+    welcome_msg: Optional[MessageTemplate]
+    goodbye_msg: Optional[MessageTemplate]
+    greet_channel: Optional[int]
 
     def __init__(
         self,
@@ -37,12 +74,18 @@ class Settings:
         teams_channel: Optional[int] = None,
         teams_chat_id: Optional[str] = None,
         autoroles: Optional[List[int]] = None,
+        welcome_msg: Optional[MessageTemplate] = None,
+        goodbye_msg: Optional[MessageTemplate] = None,
+        greet_channel: Optional[int] = None,
     ) -> None:
         self.quotes_channel = quotes_channel
         self.teams_auth = teams_auth
         self.teams_channel = teams_channel
         self.teams_chat_id = teams_chat_id
         self.autoroles = autoroles or []
+        self.welcome_msg = welcome_msg
+        self.goodbye_msg = goodbye_msg
+        self.greet_channel = greet_channel
 
     @classmethod
     def load(cls, data: bytes) -> 'Settings':
@@ -53,6 +96,9 @@ class Settings:
         obj.teams_channel = d.get('teams_channel')
         obj.teams_chat_id = d.get('teams_chat_id')
         obj.autoroles = d.get('autoroles') or []
+        obj.welcome_msg = MessageTemplate.load(d.get('welcome_msg'))
+        obj.goodbye_msg = MessageTemplate.load(d.get('goodbye_msg'))
+        obj.greet_channel = d.get('greet_channel')
         return obj
 
     def dump(self) -> bytes:
@@ -63,6 +109,9 @@ class Settings:
                 'teams_channel': self.teams_channel,
                 'teams_chat_id': self.teams_chat_id,
                 'autoroles': self.autoroles,
+                'welcome_msg': self.welcome_msg and self.welcome_msg.dump(),
+                'goodbye_msg': self.goodbye_msg and self.goodbye_msg.dump(),
+                'greet_channel': self.greet_channel,
             }
         ).encode()
 

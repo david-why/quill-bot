@@ -28,37 +28,38 @@ class SettingsError(Exception):
 class SettingsCommandExtension(Extension):
     bot: CustomClient
 
-    def get_embed_and_components(self, guild: Guild):
+    async def get_embed_and_components(self, guild: Guild):
         guild_id = guild.id
         settings = self.bot.database.get_guild_settings(guild_id)
 
         channel = None
         if settings.quotes_channel:
-            channel = guild.get_channel(settings.quotes_channel)
+            channel = await guild.fetch_channel(settings.quotes_channel)
             if channel is None:
                 raise SettingsError('Unknown error -4')
 
-        channel_field = EmbedField(
+        quote_field = EmbedField(
             'Quotes channel',
             'The serverwide channel to send /quote and "Quote message" quotes to.\n'
             f'Currently set to {channel.mention if channel else "<No channel>"}',
         )
-        channel_select = ChannelSelectMenu(
+        quote_select = ChannelSelectMenu(
             channel_types=[ChannelType.GUILD_TEXT],
             custom_id='settings_channel',
             placeholder='Quotes channel',
         )
-        channel_clear = Button(
+        quote_clear = Button(
             style=ButtonStyle.SECONDARY,
             label='Clear quotes channel',
             custom_id='settings_channel_clear',
         )
+
         embed = Embed(
             title='Server settings',
             description='Here you can change settings for the Quill bot.',
-            fields=[channel_field],
+            fields=[quote_field],
         )
-        return embed, [[channel_select], [channel_clear]]
+        return embed, [[quote_select], [quote_clear]]
 
     @slash_command(name='settings', description='Update the server settings for Quill')
     async def settings_command(self, ctx: InteractionContext):
@@ -81,7 +82,7 @@ class SettingsCommandExtension(Extension):
             return
 
         try:
-            embed, components = self.get_embed_and_components(guild)
+            embed, components = await self.get_embed_and_components(guild)
         except SettingsError as exc:
             await ctx.send(embeds=error_embed(exc.msg), ephemeral=True)
             return
@@ -117,7 +118,7 @@ class SettingsCommandExtension(Extension):
         settings = self.bot.database.get_guild_settings(guild_id)
         settings.quotes_channel = channel.id
         self.bot.database.set_guild_settings(guild_id, settings)
-        embed, components = self.get_embed_and_components(guild)
+        embed, components = await self.get_embed_and_components(guild)
         await ctx.edit_origin(embeds=embed, components=components)
         # await ctx.send(f'Updated quotes channel to {channel.mention}!')
 
@@ -139,7 +140,7 @@ class SettingsCommandExtension(Extension):
         settings = self.bot.database.get_guild_settings(guild_id)
         settings.quotes_channel = None
         self.bot.database.set_guild_settings(guild_id, settings)
-        embed, components = self.get_embed_and_components(guild)
+        embed, components = await self.get_embed_and_components(guild)
         await ctx.edit_origin(embeds=embed, components=components)
         # await ctx.send('Cleared quotes channel!')
 

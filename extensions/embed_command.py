@@ -4,6 +4,7 @@ from interactions import (
     Extension,
     InteractionContext,
     ChannelType,
+    EmbedFooter,
     TYPE_MESSAGEABLE_CHANNEL,
     slash_command,
     Embed,
@@ -45,6 +46,18 @@ class EmbedCommandExtension(Extension):
                 description='Hex color code of the embed color',
                 required=False,
             ),
+            SlashCommandOption(
+                name='footer',
+                type=OptionType.STRING,
+                description='Text that goes in the footer',
+                required=False,
+            ),
+            SlashCommandOption(
+                name='footericon',
+                type=OptionType.STRING,
+                description='URL of icon that goes before the footer text',
+                required=False,
+            ),
         ],
     )
     async def embed_command(self, ctx: InteractionContext):
@@ -53,6 +66,8 @@ class EmbedCommandExtension(Extension):
         content: str = args['content']
         channel: TYPE_MESSAGEABLE_CHANNEL = args.get('channel', ctx.channel)
         color: Optional[str] = args.get('color')
+        footer_text: Optional[str] = args.get('footer')
+        footer_icon: Optional[str] = args.get('footericon')
         member = ctx.member or ctx.user
         embed = Embed(
             title=title,
@@ -63,6 +78,12 @@ class EmbedCommandExtension(Extension):
                 icon_url=member.display_avatar.url,
             ),
         )
+        if footer_text or footer_icon:
+            if footer_text is None:
+                return await ctx.send(
+                    'You cannot have footer icon but not text!', ephemeral=True
+                )
+            embed.footer = EmbedFooter(footer_text, footer_icon)
         message = await channel.send(embeds=embed)
         await ctx.send(f'Embed sent! {message.jump_url}')
 
