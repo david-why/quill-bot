@@ -3,7 +3,7 @@ from typing import Optional
 from interactions import (
     Extension,
     InteractionContext,
-    ChannelType,
+    ChannelType,EmbedAttachment,
     EmbedFooter,
     TYPE_MESSAGEABLE_CHANNEL,
     slash_command,
@@ -58,6 +58,12 @@ class EmbedCommandExtension(Extension):
                 description='URL of icon that goes before the footer text',
                 required=False,
             ),
+            SlashCommandOption(
+                name='image',
+                type=OptionType.STRING,
+                description='URL of large image to the right',
+                required=False
+            ),
         ],
     )
     async def embed_command(self, ctx: InteractionContext):
@@ -68,6 +74,7 @@ class EmbedCommandExtension(Extension):
         color: Optional[str] = args.get('color')
         footer_text: Optional[str] = args.get('footer')
         footer_icon: Optional[str] = args.get('footericon')
+        image: Optional[str] = args.get('image')
         member = ctx.member or ctx.user
         embed = Embed(
             title=title,
@@ -84,6 +91,8 @@ class EmbedCommandExtension(Extension):
                     'You cannot have footer icon but not text!', ephemeral=True
                 )
             embed.footer = EmbedFooter(footer_text, footer_icon)
+        if image:
+            embed.thumbnail = EmbedAttachment(image)
         message = await channel.send(embeds=embed)
         await ctx.send(f'Embed sent! {message.jump_url}')
 
