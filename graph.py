@@ -28,7 +28,7 @@ class PollData(TypedDict):
     interval: int
 
 
-class PollResponse(TypedDict):
+class TokensResponse(TypedDict):
     token_type: str
     scope: str
     expires: int
@@ -38,16 +38,10 @@ class PollResponse(TypedDict):
 
 
 class Auth:
-    def __init__(
-        self,
-        client_id: str,
-        tenant: str = 'common',
-        client_credentials: Optional[str] = None,
-    ):
+    def __init__(self, client_id: str, tenant: str = 'common'):
         self.client_id = client_id
         self.tenant = tenant
         self.authority = f'https://login.microsoftonline.com/{tenant}'
-        self.client_credentials = client_credentials
 
     async def log_in(self, scopes: List[str]) -> Union[LogInResponse, ErrorResponse]:
         if any(x in scopes for x in ['offline_access', 'openid']):
@@ -64,7 +58,7 @@ class Auth:
                 data['expires'] = int(time.time() + data['expires_in'])
                 return data
 
-    async def poll_log_in(self, data: PollData) -> Union[PollResponse, ErrorResponse]:
+    async def poll_log_in(self, data: PollData) -> Union[TokensResponse, ErrorResponse]:
         while True:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -87,9 +81,11 @@ class Auth:
                     resp['expires'] = int(time.time() + resp['expires_in'])
                     return resp
 
-    async def get_tokens(self, data: PollResponse) -> Union[PollResponse, ErrorResponse]:
+    async def get_tokens(
+        self, data: TokensResponse
+    ) -> Union[TokensResponse, ErrorResponse]:
         expires = data['expires']
-        if time.time() < expires:
+        if time.time() + 10 < expires:
             return data
         refresh_token = data['refresh_token']
         async with aiohttp.ClientSession() as session:

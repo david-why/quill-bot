@@ -10,7 +10,7 @@ class CustomLogger:
 
     def __init__(self):
         self.formatter = logging.Formatter(
-            "%(asctime)s UTC || %(levelname)s || %(message)s"
+            "%(asctime)s UTC || %(levelname)s[%(name)s] || %(message)s"
         )
         self.formatter.converter = time.gmtime
 
@@ -34,6 +34,8 @@ class CustomLogger:
         # add bother handlers
         logger.addHandler(console_handler)
         logger.addHandler(file_handler)
+        
+        return logger
 
 
 class MakeFileHandler(logging.FileHandler):

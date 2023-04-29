@@ -2,7 +2,7 @@ import json
 import sqlite3
 from typing import List, Optional
 
-from graph import PollResponse
+from graph import TokensResponse
 from util import tomorrow
 
 CREATE_SETTINGS = '''CREATE TABLE IF NOT EXISTS settings (
@@ -59,7 +59,7 @@ class Settings:
     )
 
     quotes_channel: Optional[int]
-    teams_auth: Optional[PollResponse]
+    teams_auth: Optional[TokensResponse]
     teams_channel: Optional[int]
     teams_chat_id: Optional[str]
     autoroles: List[int]
@@ -70,7 +70,7 @@ class Settings:
     def __init__(
         self,
         quotes_channel: Optional[int] = None,
-        teams_auth: Optional[PollResponse] = None,
+        teams_auth: Optional[TokensResponse] = None,
         teams_channel: Optional[int] = None,
         teams_chat_id: Optional[str] = None,
         autoroles: Optional[List[int]] = None,

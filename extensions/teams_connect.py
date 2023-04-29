@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 from typing import Dict, Optional, Tuple, cast
 
 import aiohttp
@@ -13,9 +14,11 @@ from interactions import (
     Extension,
     Guild,
     InteractionContext,
+    Member,
     OptionType,
     Permissions,
     SlashCommandOption,
+    User,
     component_callback,
     listen,
     slash_command,
@@ -23,12 +26,21 @@ from interactions import (
 from interactions.api.events import MessageCreate
 
 from client import CustomClient
-from graph import Auth, ErrorResponse, LogInResponse, PollResponse
+from graph import Auth, ErrorResponse, LogInResponse, TokensResponse
+from teams_server.server import (
+    CHAT_EXPIRES,
+    build_app,
+    build_client_state,
+    start_app,
+    sub,
+)
 from util import error_embed
 
 auth = None
+client_state = ''
+external_url = ''
 
-SCOPES = ['ChatMessage.Read', 'ChatMessage.Send', 'email']
+SCOPES = ['ChatMessage.Send', 'Chat.Read', 'email']
 
 
 class TeamsConnectorExtension(Extension):
@@ -38,6 +50,12 @@ class TeamsConnectorExtension(Extension):
     def __init__(self, bot: CustomClient) -> None:
         cast(None, bot)
         self.database = {}
+
+    @listen()
+    async def on_startup(self):
+        self.bot.logger.info('Starting Teams connect server...')
+        app = build_app(self.bot)
+        await start_app(app)
 
     async def get_embed_components(self, guild: Guild):
         guild_id = guild.id
@@ -104,6 +122,7 @@ class TeamsConnectorExtension(Extension):
         ],
     )
     async def teams_command(self, ctx: InteractionContext):
+        assert auth
         args = ctx.kwargs
         conversation: Optional[str] = args.get('conversation')
         guild = ctx.guild
@@ -123,7 +142,43 @@ class TeamsConnectorExtension(Extension):
         if conversation:
             settings = self.bot.database.get_guild_settings(guild.id)
             settings.teams_chat_id = conversation
-            return await ctx.send(f'Teams conversation ID set to **{conversation}**!')
+            self.bot.database.set_guild_settings(guild.id, settings)
+            if settings.teams_auth is not None:
+                await ctx.defer()
+                tokens = await auth.get_tokens(settings.teams_auth)
+                if 'error' in tokens:
+                    self.bot.logger.warning(
+                        f'Refresh for {guild.id} failed: {tokens!r}'
+                    )
+                    return await ctx.send(
+                        'Conversation ID set, but subscription failed...'
+                    )
+                assert external_url
+                subscription = await sub.add_subscription(
+                    tokens,
+                    external_url + '/chatMessageNotification',
+                    f'/chats/{conversation}/messages',
+                    datetime.utcnow() + CHAT_EXPIRES,
+                    build_client_state(guild.id, conversation),
+                    external_url + '/lifecycleNotification',
+                    'created',
+                )
+                self.bot.logger.info(f'add sub from change chat: {subscription}')
+                if 'error' in subscription:
+                    self.bot.logger.warning(
+                        f'Change sub for {guild.id} failed: {subscription!r}'
+                    )
+                    return await ctx.send(
+                        'Conversation ID set, but subscription failed...'
+                    )
+                return await ctx.send(
+                    'Set Teams conversation AND subscribed to Teams chat!'
+                )
+            return await ctx.send(
+                f'Teams conversation ID set to **{conversation}**!\n'
+                '(Please now authenticate to Teams with `/teams` and do this '
+                'again to subscribe to the Teams chat for reverse connection)'
+            )
         embed, components = await self.get_embed_components(guild)
         await ctx.send(embeds=embed, components=components)
 
@@ -205,7 +260,7 @@ class TeamsConnectorExtension(Extension):
                 msg += poll['error_description']
             await ctx.channel.send(embeds=error_embed(msg), reply_to=ctx.message)
             return
-        poll = cast(PollResponse, poll)
+        poll = cast(TokensResponse, poll)
         settings = self.bot.database.get_guild_settings(guild_id)
         settings.teams_auth = poll
         self.bot.database.set_guild_settings(guild_id, settings)
@@ -230,10 +285,15 @@ class TeamsConnectorExtension(Extension):
         ):
             return
         author = message.author
+        if isinstance(author, Member) and author.user.id == self.bot.user.id:
+            return
+        if isinstance(author, User) and author.id == self.bot.user.id:
+            return
         author_name = f'{author.display_name}#{author.discriminator}'
         composed = (
             f'<div><p><b>{author_name}</b> <a href="{message.jump_url}"><i>from '
             f'Discord</i></a></p><div>{convert_to_html(message.content)}</div></div>'
+            '<!-- SENT FROM DISCORD BY QUILL -->'
         )
         tokens = await auth.get_tokens(settings.teams_auth)
         if 'error' in tokens:
@@ -245,7 +305,7 @@ class TeamsConnectorExtension(Extension):
             settings = self.bot.database.get_guild_settings(guild_id)
             settings.teams_auth = tokens
             self.bot.database.set_guild_settings(guild_id, settings)
-        tokens = cast(PollResponse, tokens)
+        tokens = cast(TokensResponse, tokens)
         token_type = tokens['token_type']
         access_token = tokens['access_token']
         token = f'{token_type} {access_token}'
@@ -262,11 +322,19 @@ class TeamsConnectorExtension(Extension):
 
 
 def setup(bot: CustomClient):
+    global auth, client_state, external_url
     client_id = os.getenv('GRAPH_CLIENT_ID')
+    state = os.getenv('GRAPH_CLIENT_STATE')
     if client_id is None:
         bot.logger.warning('No GRAPH_CLIENT_ID found, disabling teams_connect')
+    elif client_state is None:
+        bot.logger.warning('No GRAPH_CLIENT_STATE found, disabling teams_connect')
     else:
         tenant = os.getenv('GRAPH_TENANT', 'common')
-        global auth
         auth = Auth(client_id, tenant)
-        TeamsConnectorExtension(bot)
+        client_state = state
+        external_url = os.getenv('TEAMS_EXTERNAL_URL')
+        if external_url is None:
+            bot.logger.warning('No TEAMS_EXTERNAL_URL found, disabling teams_connect')
+        else:
+            TeamsConnectorExtension(bot)
