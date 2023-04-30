@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple, cast
 
 import aiohttp
-from discord_markdown.discord_markdown import convert_to_html
+
+# from discord_markdown.discord_markdown import convert_to_html
 from interactions import (
     Button,
     ButtonStyle,
@@ -27,6 +28,7 @@ from interactions.api.events import MessageCreate
 
 from client import CustomClient
 from graph import Auth, ErrorResponse, LogInResponse, TokensResponse
+from mdrender import convert_with_guild
 from teams_server.server import (
     CHAT_EXPIRES,
     build_app,
@@ -290,9 +292,10 @@ class TeamsConnectorExtension(Extension):
         if isinstance(author, User) and author.id == self.bot.user.id:
             return
         author_name = f'{author.display_name}#{author.discriminator}'
+        html_text = await convert_with_guild(message.content, message.guild)
         composed = (
-            f'<div><p><b>{author_name}</b> <a href="{message.jump_url}"><i>from '
-            f'Discord</i></a></p><div>{convert_to_html(message.content)}</div></div>'
+            f'<div><p><b>{author_name}</b> <a href="{message.jump_url}"><i>'
+            f'from Discord</i></a></p><div>{html_text}</div></div>'
             '<!-- SENT FROM DISCORD BY QUILL -->'
         )
         tokens = await auth.get_tokens(settings.teams_auth)

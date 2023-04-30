@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, TypedDict
 
 from aiohttp.client import request
@@ -106,7 +106,7 @@ class GraphSubscriptions:
     ) -> GraphSubscription:
         async with request(
             'PATCH',
-            f'https://graph.microsoft.com/v1.0/subscriptions',
+            f'https://graph.microsoft.com/v1.0/subscriptions/{id}',
             headers={'Authorization': await self._get_token(auth)},
             json={'expirationDateTime': format_datetime(expiration)},
         ) as resp:

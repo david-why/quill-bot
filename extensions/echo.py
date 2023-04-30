@@ -38,7 +38,7 @@ class EchoCommandExtension(Extension):
         args = ctx.kwargs
         message: str = args['message']
         channel: Optional[TYPE_MESSAGEABLE_CHANNEL] = args.get('channel', ctx.channel)
-        await channel.send(message)
+        await channel.send(message.replace('\\n', '\n').replace('\\\\', '\\'))
         await ctx.send('Message sent!', ephemeral=True)
 
 

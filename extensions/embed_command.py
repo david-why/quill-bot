@@ -59,9 +59,15 @@ class EmbedCommandExtension(Extension):
                 required=False,
             ),
             SlashCommandOption(
-                name='image',
+                name='thumbnail',
                 type=OptionType.STRING,
                 description='URL of large image to the right',
+                required=False
+            ),
+            SlashCommandOption(
+                name='image',
+                type=OptionType.STRING,
+                description='URL of large image just above footer',
                 required=False
             ),
         ],
@@ -74,6 +80,7 @@ class EmbedCommandExtension(Extension):
         color: Optional[str] = args.get('color')
         footer_text: Optional[str] = args.get('footer')
         footer_icon: Optional[str] = args.get('footericon')
+        thumbnail: Optional[str] = args.get('thumbnail')
         image: Optional[str] = args.get('image')
         member = ctx.member or ctx.user
         embed = Embed(
@@ -91,8 +98,10 @@ class EmbedCommandExtension(Extension):
                     'You cannot have footer icon but not text!', ephemeral=True
                 )
             embed.footer = EmbedFooter(footer_text, footer_icon)
+        if thumbnail:
+            embed.thumbnail = EmbedAttachment(thumbnail)
         if image:
-            embed.thumbnail = EmbedAttachment(image)
+            embed.set_image(image)
         message = await channel.send(embeds=embed)
         await ctx.send(f'Embed sent! {message.jump_url}')
 
