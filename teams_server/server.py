@@ -77,8 +77,6 @@ async def chat_message_notification(request: Request):
             return Response(status=202)
         queue: Queue = request.app['CM_QUEUE']
         await queue.put(value)
-        # await scheduler.spawn(chat_message_parse(value, get_bot(request)))
-        # print('spawned parser')
     return Response(status=202)
 
 
@@ -111,7 +109,6 @@ async def lifecycle_notification(request: Request):
 async def chat_message_parse(value: dict, app: Application):
     bot: 'CustomClient' = app['DISCORD_BOT']
     odata_id = value['resourceData']['@odata.id']
-    app.logger.info(f'got message {odata_id}')
     client_state_dict = json.loads(value['clientState'])
     subscription_id = value['subscriptionId']
     guild_id = client_state_dict.get('g')
@@ -170,24 +167,22 @@ async def chat_message_parse(value: dict, app: Application):
 
 async def lifecycle_parse(value: dict, app: Application):
     bot: 'CustomClient' = app['DISCORD_BOT']
-    app.logger.info(f'lifecycle event {value}')
     client_state_dict = json.loads(value['clientState'])
     guild_id = client_state_dict.get('g')
     if guild_id is None:
-        return app.logger.warning(f'Guild id gone: {value}')
+        return app.logger.error(f'Guild id missing: {value}')
     subscription_id = value['subscriptionId']
     settings = bot.database.get_guild_settings(guild_id)
     if settings.teams_auth is None or settings.teams_chat_id is None:
         return
     tokens = await auth.get_tokens(settings.teams_auth)
     if 'error' in tokens:
-        return app.logger.warning(f'Error in refresh: {tokens}')
+        return app.logger.error(f'Error in refresh for {guild_id}: {tokens}')
     if tokens != settings.teams_auth:
         settings.teams_auth = tokens
         bot.database.set_guild_settings(guild_id, settings)
     sub_chat_id = client_state_dict.get('c')
     if settings.teams_chat_id != sub_chat_id:
-        app.logger.info(f'remove sub as chat id changed {value}')
         await sub.remove_subscription(tokens, subscription_id)
         return
     try:
@@ -200,33 +195,27 @@ async def lifecycle_parse(value: dict, app: Application):
             client_state=build_client_state(guild_id, settings.teams_chat_id),
             lifecycle_notification_url=external_url + '/lifecycleNotification',
         )
-    except GraphError as e:
-        app.logger.warning(f'error lifecycle: {e.msg}')
+    except GraphError:
+        app.logger.exception(f'Error parsing lifecycle notification')
         return
 
 
 async def chat_message_background(queue: Queue, app: Application):
-    bot: 'CustomClient' = app['DISCORD_BOT']
     while True:
         item = await queue.get()
         try:
             await chat_message_parse(item, app)
         except:
-            app.logger.error(
-                f'Error parsing chatMessage {item}: \n{traceback.format_exc()}'
-            )
+            app.logger.exception(f'Error parsing chatMessage {item}')
 
 
 async def lifecycle_background(queue: Queue, app: Application):
-    bot: 'CustomClient' = app['DISCORD_BOT']
     while True:
         item = await queue.get()
         try:
             await lifecycle_parse(item, app)
         except:
-            app.logger.error(
-                f'Error parsing lifecycle event {item}: \n{traceback.format_exc()}'
-            )
+            app.logger.exception(f'Error parsing lifecycle event {item}')
 
 
 def build_app(bot: 'CustomClient') -> Application:
@@ -243,14 +232,13 @@ def build_app(bot: 'CustomClient') -> Application:
     lf_task = loop.create_task(lf_coro)
 
     async def on_cleanup(app: Application):
+        cast(None, app)
         yield
         logger.info('Shutting down Teams server, canceling daemons...')
         cm_task.cancel()
         lf_task.cancel()
 
     app.cleanup_ctx.append(on_cleanup)
-    # app.on_cleanup.append(on_cleanup)
-    # setup(app)
     return app
 
 
