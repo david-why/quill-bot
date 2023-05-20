@@ -97,7 +97,6 @@ class ReactCommandExtension(Extension):
                 name='name',
                 type=OptionType.STRING,
                 description='The name of the custom reaction',
-                required=False,
             ),
         ],
         dm_permission=False,
@@ -105,7 +104,7 @@ class ReactCommandExtension(Extension):
     async def customreact_command(self, ctx: InteractionContext):
         message_id: str = ctx.kwargs['message'].strip()
         image: Attachment = ctx.kwargs['image']
-        name: str = ctx.kwargs.get('name', 'CustomEmoji')
+        name: str = ctx.kwargs['name']
         if (ctx.app_permissions & Permissions.MANAGE_EMOJIS_AND_STICKERS) == 0:
             return await ctx.send('I cannot add emojis... :(', ephemeral=True)
         if image.size >= 256 * 1024:

@@ -13,6 +13,8 @@ Add the bot to your server with [this link](https://discord.com/api/oauth2/autho
 - `/usersettings`: Manages settings for the user. This includes setting the user's timezone.
 - `/userpoll text [min] [max]`: Creates a poll that lets users vote for users. Optionally specify the \[min\] and \[max\] number of users allowed to vote for each time.
 - `/info`: Shows the user info. This includes the `/chat` tokens and `/imagegen` generations used today (see below)
+- `/react message emoji`: Lets Quill react to the message. Interestingly, this can be used to react with external emojis, as long as Quill is in that server as well.
+- `/customreact message image name`: Reacts to the message with the given image and the given emoji name. This will create a temporary emoji, react with the emoji, and delete the emoji.
 
 The following commands are used to create btnroles messages, an alternative to reaction roles that uses buttons. They require the bot to have the Manage Roles permission to use.
 - `/btnroles setup`: Interactively setup a btnroles message.
