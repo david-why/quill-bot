@@ -183,8 +183,7 @@ async def lifecycle_parse(value: dict, app: Application):
         bot.database.set_guild_settings(guild_id, settings)
     sub_chat_id = client_state_dict.get('c')
     if settings.teams_chat_id != sub_chat_id:
-        await sub.remove_subscription(tokens, subscription_id)
-        return
+        return await sub.remove_subscription(tokens, subscription_id)
     try:
         await sub.parse_lifecycle_notification(
             tokens,
@@ -197,7 +196,6 @@ async def lifecycle_parse(value: dict, app: Application):
         )
     except GraphError:
         app.logger.exception(f'Error parsing lifecycle notification')
-        return
 
 
 async def chat_message_background(queue: Queue, app: Application):
