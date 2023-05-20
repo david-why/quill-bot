@@ -23,7 +23,7 @@ The following commands are used to create btnroles messages, an alternative to r
 - `/btnroles editrole message index [role] [label] [delete]`: Edits the index-th (1-based) button in the message, optionally changing the \[role\] and/or \[label\] or \[delete\] it.
 
 The following commands require the `GRAPH_CLIENT_ID` environment variable set to the Client ID of an Azure application registration. Optionally, `GRAPH_TENANT` can be set to restrict the features to a specific tenant.
-- `/teams`: Connects a channel in the server to a Teams group chat. *WIP: It works, but only from Discord to Teams, and you need to set the Teams conversation ID manually by modifying the database*
+- `/teams`: Connects a channel in the server to a Teams group chat. *WIP: Sometimes the subscription for Teams message dies?*
 
 The following commands require the `OPENAI_TOKEN` environment variable set to an OpenAI API token.
 - `/chat`: Starts a chat with `gpt-3.5-turbo`. WARNING: This eats tokens (and therefore your money) really fast! Reply to bot messages to continue chatting. Each user has a 10,000 token limit per day.
