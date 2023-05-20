@@ -1,16 +1,17 @@
 from typing import Optional
 
 from interactions import (
+    TYPE_MESSAGEABLE_CHANNEL,
+    ChannelType,
+    Embed,
+    EmbedAttachment,
+    EmbedAuthor,
+    EmbedFooter,
     Extension,
     InteractionContext,
-    ChannelType,EmbedAttachment,
-    EmbedFooter,
-    TYPE_MESSAGEABLE_CHANNEL,
-    slash_command,
-    Embed,
-    EmbedAuthor,
-    SlashCommandOption,
     OptionType,
+    SlashCommandOption,
+    slash_command,
 )
 
 from client import CustomClient
@@ -62,13 +63,13 @@ class EmbedCommandExtension(Extension):
                 name='thumbnail',
                 type=OptionType.STRING,
                 description='URL of large image to the right',
-                required=False
+                required=False,
             ),
             SlashCommandOption(
                 name='image',
                 type=OptionType.STRING,
                 description='URL of large image just above footer',
-                required=False
+                required=False,
             ),
         ],
     )
