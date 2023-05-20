@@ -2,12 +2,19 @@ import os
 
 import dotenv
 from interactions import Intents
+from interactions.client import const as client_const
 
 from client import CustomClient
 from loader import load_extensions
 from log import init_logging
 
 DEBUG = False
+
+if 1001 not in client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES:
+    client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES = (
+        *client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES,
+        1001,
+    )
 
 dotenv.load_dotenv()
 init_logging()
