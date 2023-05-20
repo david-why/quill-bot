@@ -57,7 +57,7 @@ class ReactCommandExtension(Extension):
                 description='Emoji to react with',
             ),
         ],
-        default_member_permissions=Permissions.MANAGE_MESSAGES,
+        dm_permission=False,
     )
     async def react_command(self, ctx: InteractionContext):
         message_id: str = ctx.kwargs['message'].strip()
@@ -100,6 +100,7 @@ class ReactCommandExtension(Extension):
                 required=False,
             ),
         ],
+        dm_permission=False,
     )
     async def customreact_command(self, ctx: InteractionContext):
         message_id: str = ctx.kwargs['message'].strip()
