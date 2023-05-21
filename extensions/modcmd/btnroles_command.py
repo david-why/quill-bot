@@ -348,6 +348,13 @@ class ButtonRolesCommandExtension(Extension):
                 type=OptionType.STRING,
                 description='The label on the button',
             ),
+            SlashCommandOption(
+                name='index',
+                type=OptionType.INTEGER,
+                description='The location to insert the role, 1-based',
+                min_value=1,
+                required=False,
+            ),
         ],
     )
     async def roles_add_command(self, ctx: InteractionContext):
@@ -355,6 +362,7 @@ class ButtonRolesCommandExtension(Extension):
         message_id: str = args['message']
         role: Role = args['role']
         label: str = args['label']
+        index: int = args.get('index', -1)
         guild = ctx.guild
         if guild is None:
             return await ctx.send(
@@ -364,18 +372,26 @@ class ButtonRolesCommandExtension(Extension):
         message = await self.find_message(guild, message_id)
         if message is None:
             return await ctx.send(
-                'The message is not found; please double check the message ID!'
+                'The message is not found; please double check the message ID!', ephemeral=True
             )
         if not message.embeds:
-            return await ctx.send('The message doesn\'t have an embed, did I send it?')
+            return await ctx.send('The message doesn\'t have an embed, did I send it?', ephemeral=True)
         embed = message.embeds[0]
         rows = message.components or []
         components = cast(List[Button], [c for row in rows for c in row.components])
-        components.append(
-            Button(style=ButtonStyle.SECONDARY, label=label, custom_id=f'br_@{role.id}')
+        button = Button(
+            style=ButtonStyle.SECONDARY, label=label, custom_id=f'br_@{role.id}'
         )
+        if len(components) >= 23:
+            return await ctx.send('Reached maximum number of roles!', ephemeral=True)
+        if index < 0:
+            components.append(button)
+        elif index > len(components):
+            return await ctx.send(f'Role index out of range! Maximum index: {len(components)}', ephemeral=True)
+        else:
+            components.insert(index - 1, button)
         await message.edit(embeds=embed, components=split_rows(*components))
-        await ctx.send('Edited message!')
+        await ctx.send('Edited message!', ephemeral=True)
 
     @slash_command(
         'btnroles',

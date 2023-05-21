@@ -18,7 +18,7 @@ Add the bot to your server with [this link](https://discord.com/api/oauth2/autho
 
 The following commands are used to create btnroles messages, an alternative to reaction roles that uses buttons. They require the bot to have the Manage Roles permission to use.
 - `/btnroles setup`: Interactively setup a btnroles message.
-- `/btnroles add message role label`: Adds a new role to the message with the button label.
+- `/btnroles add message role label [index]`: Adds a new role to the message with the button label. Optionally insert the new role at location \[index\].
 - `/btnroles edit [title] [content]`: Edits the embed in the message, optionally changing the \[title\] and/or \[content\].
 - `/btnroles editrole message index [role] [label] [delete]`: Edits the index-th (1-based) button in the message, optionally changing the \[role\] and/or \[label\] or \[delete\] it.
 
