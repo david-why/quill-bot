@@ -13,6 +13,13 @@ CREATE_USERS = '''CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY UNIQUE,
     user BLOB
 );'''
+CREATE_POLLS = '''CREATE TABLE IF NOT EXISTS polls (
+    message_id INTEGER,
+    guild_id INTEGER,
+    channel_id INTEGER,
+    user_id INTEGER,
+    PRIMARY KEY(message_id, guild_id, channel_id, user_id)
+)'''
 
 
 class MessageTemplate:
@@ -168,6 +175,7 @@ class Database:
         cur = self.cursor
         cur.execute(CREATE_SETTINGS)
         cur.execute(CREATE_USERS)
+        cur.execute(CREATE_POLLS)
         self.connection.commit()
 
     @property
@@ -220,4 +228,26 @@ class Database:
         else:
             sql = 'INSERT INTO users(user, id) VALUES(?, ?)'
         cur.execute(sql, params)
+        self.connection.commit()
+
+    def has_poll(
+        self, message_id: int, guild_id: int, channel_id: int, user_id: int
+    ) -> bool:
+        cur = self.cursor
+        cur.execute(
+            "SELECT '1' FROM polls WHERE message_id=? "
+            'AND guild_id=? AND channel_id=? AND user_id=?',
+            [message_id, guild_id, channel_id, user_id],
+        )
+        return cur.fetchone() is not None
+
+    def add_poll(
+        self, message_id: int, guild_id: int, channel_id: int, user_id: int
+    ) -> None:
+        cur = self.cursor
+        cur.execute(
+            'INSERT INTO polls(message_id, guild_id, '
+            'channel_id, user_id) VALUES(?, ?, ?, ?)',
+            [message_id, guild_id, channel_id, user_id],
+        )
         self.connection.commit()
