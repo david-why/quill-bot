@@ -2,7 +2,7 @@
 A bot designed for quoting but ended up doing a bit more.
 
 ## Adding to your server
-Add the bot to your server with [this link](https://discord.com/api/oauth2/authorize?client_id=1096665287597768704&permissions=276220348416&scope=applications.commands%20bot).
+Add the bot to your server with [this link](https://discord.com/api/oauth2/authorize?client_id=1096665287597768704&permissions=276220415040&scope=applications.commands%20bot).
 
 ## Commands
 - `/quote from quote [channel]`: Adds a quote to the \[channel\], serverwide quotes channel, or current channel, whichever one exists.
@@ -15,6 +15,7 @@ Add the bot to your server with [this link](https://discord.com/api/oauth2/autho
 - `/info`: Shows the user info. This includes the `/chat` tokens and `/imagegen` generations used today (see below)
 - `/react message emoji`: Lets Quill react to the message. Interestingly, this can be used to react with external emojis, as long as Quill is in that server as well.
 - `/customreact message image name`: Reacts to the message with the given image and the given emoji name. This will create a temporary emoji, react with the emoji, and delete the emoji.
+- `/poll question options`: Creates a poll. This poll is completely anonymous (as long as you don't go dig in the bot logs and database), so you don't need to worry about privacy. The options are separated by a pipe character (|).
 
 The following commands are used to create btnroles messages, an alternative to reaction roles that uses buttons. They require the bot to have the Manage Roles permission to use.
 - `/btnroles setup`: Interactively setup a btnroles message.
