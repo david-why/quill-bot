@@ -161,7 +161,10 @@ class ZlibCommandExtension(Extension):
             # size = sizeify(int(book.get('filesize')))
             size = book.get('filesizeString') or 'unknown size'
             desc = md(book.get('description') or '')
-            value = f'*{book["extension"]}, {size}, {book["language"]}*\n{desc}'
+            value = (
+                f'*{book["author"]}*\n*{book["extension"]}, {size}, '
+                f'{book["language"]}*\n{desc}'
+            )
             if len(value) > 1024:
                 value = value[:1021] + '...'
             fields.append(EmbedField(f'{i+1}. {book["title"]}', value))
