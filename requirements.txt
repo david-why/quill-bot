@@ -1,7 +1,11 @@
-discord-py-interactions>=5.0<6.0
+discord-py-interactions[voice]>=5.0<6.0
 python-dotenv
-openai>=0.27.0
+openai>=0.27.7<1.0
 pyjwt>=1.0.1
 cryptography
 discord-markdown-ast-parser @ git+https://github.com/david-why/discord-markdown-ast@c5fa79f
 beautifulsoup4
+youtube-dl @ git+git@github.com:ytdl-org/youtube-dl.git@213d1d91bfc4a00fefc72fa2730555d51060b42d
+websockets
+aiohttp
+markdownify

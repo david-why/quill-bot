@@ -20,6 +20,12 @@ CREATE_POLLS = '''CREATE TABLE IF NOT EXISTS polls (
     user_id INTEGER,
     PRIMARY KEY(message_id, guild_id, channel_id, user_id)
 )'''
+CREATE_STARBOARD = '''CREATE TABLE IF NOT EXISTS starboard (
+    orig_message_id INTEGER,
+    guild_id INTEGER,
+    message_id INTEGER,
+    PRIMARY KEY(orig_message_id, guild_id)
+)'''
 
 
 class MessageTemplate:
@@ -63,6 +69,7 @@ class Settings:
         'welcome_msg',
         'goodbye_msg',
         'greet_channel',
+        'starboard_channel',
     )
 
     quotes_channel: Optional[int]
@@ -73,6 +80,7 @@ class Settings:
     welcome_msg: Optional[MessageTemplate]
     goodbye_msg: Optional[MessageTemplate]
     greet_channel: Optional[int]
+    starboard_channel: Optional[int]
 
     def __init__(
         self,
@@ -84,6 +92,7 @@ class Settings:
         welcome_msg: Optional[MessageTemplate] = None,
         goodbye_msg: Optional[MessageTemplate] = None,
         greet_channel: Optional[int] = None,
+        starboard_channel: Optional[int] = None,
     ) -> None:
         self.quotes_channel = quotes_channel
         self.teams_auth = teams_auth
@@ -93,6 +102,7 @@ class Settings:
         self.welcome_msg = welcome_msg
         self.goodbye_msg = goodbye_msg
         self.greet_channel = greet_channel
+        self.starboard_channel = starboard_channel
 
     @classmethod
     def load(cls, data: bytes) -> 'Settings':
@@ -106,6 +116,7 @@ class Settings:
         obj.welcome_msg = MessageTemplate.load(d.get('welcome_msg'))
         obj.goodbye_msg = MessageTemplate.load(d.get('goodbye_msg'))
         obj.greet_channel = d.get('greet_channel')
+        obj.starboard_channel = d.get('starboard_channel')
         return obj
 
     def dump(self) -> bytes:
@@ -119,18 +130,27 @@ class Settings:
                 'welcome_msg': self.welcome_msg and self.welcome_msg.dump(),
                 'goodbye_msg': self.goodbye_msg and self.goodbye_msg.dump(),
                 'greet_channel': self.greet_channel,
+                'starboard_channel': self.starboard_channel,
             }
         ).encode()
 
 
 class User:
-    __slots__ = 'chat_reset', 'chat_used', 'images_reset', 'images_used', 'timezone'
+    __slots__ = (
+        'chat_reset',
+        'chat_used',
+        'images_reset',
+        'images_used',
+        'timezone',
+        'zlib_query',
+    )
 
     chat_reset: float
     chat_used: int
     images_reset: float
     images_used: int
     timezone: Optional[int]
+    zlib_query: Optional[str]  # ?remix_userid=...
 
     def __init__(
         self,
@@ -139,12 +159,14 @@ class User:
         images_reset: Optional[float] = None,
         images_used: int = 0,
         timezone: Optional[int] = None,
+        zlib_query: Optional[str] = None,
     ) -> None:
         self.chat_reset = chat_reset or tomorrow().timestamp()
         self.chat_used = chat_used
         self.images_reset = images_reset or tomorrow().timestamp()
         self.images_used = images_used
         self.timezone = timezone
+        self.zlib_query = zlib_query
 
     @classmethod
     def load(cls, data: bytes) -> 'User':
@@ -155,6 +177,7 @@ class User:
         obj.images_reset = d.get('images_reset') or tomorrow().timestamp()
         obj.images_used = d.get('images_used', 0)
         obj.timezone = d.get('timezone')
+        obj.zlib_query = d.get('zlib_query')
         return obj
 
     def dump(self) -> bytes:
@@ -165,6 +188,7 @@ class User:
                 'images_reset': self.images_reset,
                 'images_used': self.images_used,
                 'timezone': self.timezone,
+                'zlib_query': self.zlib_query
             }
         ).encode()
 
@@ -176,6 +200,7 @@ class Database:
         cur.execute(CREATE_SETTINGS)
         cur.execute(CREATE_USERS)
         cur.execute(CREATE_POLLS)
+        cur.execute(CREATE_STARBOARD)
         self.connection.commit()
 
     @property
@@ -249,5 +274,36 @@ class Database:
             'INSERT INTO polls(message_id, guild_id, '
             'channel_id, user_id) VALUES(?, ?, ?, ?)',
             [message_id, guild_id, channel_id, user_id],
+        )
+        self.connection.commit()
+
+    def get_starboard_message(
+        self, guild_id: int, orig_message_id: int
+    ) -> Optional[int]:
+        cur = self.cursor
+        cur.execute(
+            'SELECT message_id FROM starboard WHERE orig_message_id=? AND guild_id=?',
+            [orig_message_id, guild_id],
+        )
+        data = cur.fetchone()
+        if data:
+            return data[0]
+
+    def add_starboard_message(
+        self, guild_id: int, orig_message_id: int, message_id: int
+    ) -> None:
+        cur = self.cursor
+        cur.execute(
+            'INSERT INTO starboard(orig_message_id, guild_id, '
+            'message_id) VALUES(?, ?, ?)',
+            [orig_message_id, guild_id, message_id],
+        )
+        self.connection.commit()
+
+    def delete_starboard_message(self, guild_id: int, orig_message_id: int):
+        cur = self.cursor
+        cur.execute(
+            'DELETE FROM starboard WHERE orig_message_id=? AND guild_id=?',
+            [orig_message_id, guild_id],
         )
         self.connection.commit()

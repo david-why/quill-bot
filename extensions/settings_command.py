@@ -31,62 +31,83 @@ class SettingsCommandExtension(Extension):
     async def get_embed_and_components(self, guild: Guild):
         guild_id = guild.id
         settings = self.bot.database.get_guild_settings(guild_id)
-
-        channel = None
-        if settings.quotes_channel:
-            channel = await guild.fetch_channel(settings.quotes_channel)
-            if channel is None:
-                raise SettingsError('Unknown error -4')
+        quote_channel = (
+            f'<#{settings.quotes_channel}>'
+            if settings.quotes_channel
+            else '<No channel>'
+        )
+        starboard_channel = (
+            f'<#{settings.starboard_channel}>'
+            if settings.starboard_channel
+            else '<No channel>'
+        )
 
         quote_field = EmbedField(
             'Quotes channel',
             'The serverwide channel to send /quote and "Quote message" quotes to.\n'
-            f'Currently set to {channel.mention if channel else "<No channel>"}',
+            f'Currently set to {quote_channel}',
         )
+        starboard_field = EmbedField(
+            'Starboard channel',
+            'The channel to send messages with a certain number of stars to.\n'
+            f'Currently set to {starboard_channel}',
+        )
+
         quote_select = ChannelSelectMenu(
             channel_types=[ChannelType.GUILD_TEXT],
             custom_id='settings_channel',
             placeholder='Quotes channel',
+        )
+        starboard_select = ChannelSelectMenu(
+            channel_types=[ChannelType.GUILD_TEXT],
+            custom_id='settings_starboard',
+            placeholder='Starboard channel',
         )
         quote_clear = Button(
             style=ButtonStyle.SECONDARY,
             label='Clear quotes channel',
             custom_id='settings_channel_clear',
         )
+        starboard_clear = Button(
+            style=ButtonStyle.SECONDARY,
+            label='Clear starboard channel',
+            custom_id='settings_starboard_clear',
+        )
+        finish = Button(
+            style=ButtonStyle.DANGER,
+            label='Exit settings',
+            custom_id='settings_exit',
+        )
 
         embed = Embed(
             title='Server settings',
             description='Here you can change settings for the Quill bot.',
-            fields=[quote_field],
+            fields=[quote_field, starboard_field],
         )
-        return embed, [[quote_select], [quote_clear]]
+        return embed, [
+            [quote_select],
+            [starboard_select],
+            [quote_clear, starboard_clear],
+            [finish],
+        ]
 
-    @slash_command(name='settings', description='Update the server settings for Quill')
+    @slash_command(
+        name='settings',
+        description='Update the server settings for Quill',
+        default_member_permissions=Permissions.MANAGE_GUILD,
+        dm_permission=False,
+    )
     async def settings_command(self, ctx: InteractionContext):
         guild = ctx.guild
         if guild is None:
-            await ctx.send(
+            return await ctx.send(
                 embeds=error_embed('/settings can only be used in servers'),
                 ephemeral=True,
             )
-            return
-        member = ctx.member
-        if member is None:
-            await ctx.send(embeds=error_embed('Unknown error -13'), ephemeral=True)
-            return
-        if not member.has_permission(Permissions.MANAGE_GUILD):
-            await ctx.send(
-                embeds=error_embed('You must have the Manage Server permission!'),
-                ephemeral=True,
-            )
-            return
-
         try:
             embed, components = await self.get_embed_and_components(guild)
         except SettingsError as exc:
-            await ctx.send(embeds=error_embed(exc.msg), ephemeral=True)
-            return
-
+            return await ctx.send(embeds=error_embed(exc.msg), ephemeral=True)
         return await ctx.send(
             embeds=embed,
             components=components,
@@ -94,46 +115,19 @@ class SettingsCommandExtension(Extension):
 
     @component_callback('settings_channel')
     async def settings_channel_callback(self, ctx: ComponentContext):
-        member = ctx.member
-        if member is None:
-            await ctx.send(embeds=error_embed('Unknown error -13'), ephemeral=True)
-            return
-        if not member.has_permission(Permissions.MANAGE_GUILD):
-            await ctx.send(
-                embeds=error_embed('You must have the Manage Server permission!'),
-                ephemeral=True,
-            )
-            return
         guild = ctx.guild
         assert guild
         guild_id = guild.id
         channels = ctx.values
-        if not channels:
-            await ctx.send(embeds=error_embed('Unknown error -14'), ephemeral=True)
-            return
         channel: GuildText = channels[0]  # type: ignore
-        if not channel:
-            await ctx.send(embeds=error_embed('Unknown error -15'), ephemeral=True)
-            return
         settings = self.bot.database.get_guild_settings(guild_id)
         settings.quotes_channel = channel.id
         self.bot.database.set_guild_settings(guild_id, settings)
         embed, components = await self.get_embed_and_components(guild)
         await ctx.edit_origin(embeds=embed, components=components)
-        # await ctx.send(f'Updated quotes channel to {channel.mention}!')
 
     @component_callback('settings_channel_clear')
     async def settings_channel_clear_callback(self, ctx: ComponentContext):
-        member = ctx.member
-        if member is None:
-            await ctx.send(embeds=error_embed('Unknown error -13'), ephemeral=True)
-            return
-        if not member.has_permission(Permissions.MANAGE_GUILD):
-            await ctx.send(
-                embeds=error_embed('You must have the Manage Server permission!'),
-                ephemeral=True,
-            )
-            return
         guild = ctx.guild
         assert guild
         guild_id = guild.id
@@ -142,7 +136,34 @@ class SettingsCommandExtension(Extension):
         self.bot.database.set_guild_settings(guild_id, settings)
         embed, components = await self.get_embed_and_components(guild)
         await ctx.edit_origin(embeds=embed, components=components)
-        # await ctx.send('Cleared quotes channel!')
+
+    @component_callback('settings_starboard')
+    async def settings_starboard_callback(self, ctx: ComponentContext):
+        guild = ctx.guild
+        assert guild
+        guild_id = guild.id
+        channels = ctx.values
+        channel: GuildText = channels[0]  # type: ignore
+        settings = self.bot.database.get_guild_settings(guild_id)
+        settings.starboard_channel = channel.id
+        self.bot.database.set_guild_settings(guild_id, settings)
+        embed, components = await self.get_embed_and_components(guild)
+        await ctx.edit_origin(embeds=embed, components=components)
+
+    @component_callback('settings_starboard_clear')
+    async def settings_starboard_clear_callback(self, ctx: ComponentContext):
+        guild = ctx.guild
+        assert guild
+        guild_id = guild.id
+        settings = self.bot.database.get_guild_settings(guild_id)
+        settings.starboard_channel = None
+        self.bot.database.set_guild_settings(guild_id, settings)
+        embed, components = await self.get_embed_and_components(guild)
+        await ctx.edit_origin(embeds=embed, components=components)
+
+    @component_callback('settings_exit')
+    async def settings_exit_callback(self, ctx: ComponentContext):
+        await ctx.edit_origin(components=[])
 
 
 def setup(bot: CustomClient):

@@ -1,12 +1,35 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from interactions import Color, Embed, Member, Timestamp, User
+from interactions import (
+    TYPE_CHANNEL_MAPPING,
+    TYPE_MESSAGEABLE_CHANNEL,
+    Color,
+    Embed,
+    Member,
+    Timestamp,
+    User,
+)
 
 if TYPE_CHECKING:
     from database import MessageTemplate
 
-__all__ = ['error_embed', 'tomorrow']
+__all__ = [
+    'MESSAGEABLE_CHANNEL_TYPES',
+    'error_embed',
+    'tomorrow',
+    'build_message',
+    'parse_time',
+]
+
+
+_rev_mapping = {v: k for k, v in TYPE_CHANNEL_MAPPING.items()}
+
+MESSAGEABLE_CHANNEL_TYPES = [
+    _rev_mapping[t]
+    for t in TYPE_MESSAGEABLE_CHANNEL.__args__  # type: ignore
+    if t in _rev_mapping
+]  # type: list[int]  # i hate vscode
 
 
 def error_embed(message: str) -> Embed:
@@ -51,3 +74,29 @@ def build_message(
         )
         kwargs['embeds'] = embed
     return kwargs
+
+
+def parse_time(time: str, tzoffset: int) -> Optional[Timestamp]:
+    try:
+        try:
+            ts = Timestamp.strptime(time, '%Y-%m-%d %H:%M:%S')
+        except:
+            ts = Timestamp.strptime(time, '%Y-%m-%d %H:%M')
+    except:
+        pass
+    else:
+        return ts - timedelta(minutes=tzoffset)
+    try:
+        try:
+            ts = Timestamp.strptime(time, '%H:%M:%S')
+        except:
+            ts = Timestamp.strptime(time, '%H:%M').replace(second=0)
+    except:
+        pass
+    else:
+        now = Timestamp.utcnow()
+        ts = ts.replace(year=now.year, month=now.month, day=now.day)
+        ts -= timedelta(minutes=tzoffset)
+        if ts.replace(tzinfo=timezone.utc) < Timestamp.utcnow():
+            ts += timedelta(days=1)
+        return ts

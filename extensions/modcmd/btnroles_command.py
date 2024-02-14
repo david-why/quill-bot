@@ -99,6 +99,7 @@ class ButtonRolesCommandExtension(Extension):
         'btnroles',
         description=DESC,
         default_member_permissions=Permissions.MANAGE_ROLES,
+        dm_permission=False,
         sub_cmd_name='setup',
         sub_cmd_description='Create a button roles message interactively',
     )
@@ -292,7 +293,7 @@ class ButtonRolesCommandExtension(Extension):
         if is_removing:
             func = member.remove_role
         try:
-            await func(role_id)
+            await func(role_id, f'Quill btnroles message {ctx.message_id}')
         except HTTPException as exc:
             if exc.code == 50013:
                 return await ctx.send(
@@ -330,6 +331,7 @@ class ButtonRolesCommandExtension(Extension):
         'btnroles',
         description=DESC,
         default_member_permissions=Permissions.MANAGE_ROLES,
+        dm_permission=False,
         sub_cmd_name='add',
         sub_cmd_description='Add a role to a created message',
         options=[
@@ -397,6 +399,7 @@ class ButtonRolesCommandExtension(Extension):
         'btnroles',
         description=DESC,
         default_member_permissions=Permissions.MANAGE_ROLES,
+        dm_permission=False,
         sub_cmd_name='edit',
         sub_cmd_description='Edits a created message',
         options=[
@@ -452,6 +455,7 @@ class ButtonRolesCommandExtension(Extension):
         'btnroles',
         description=DESC,
         default_member_permissions=Permissions.MANAGE_ROLES,
+        dm_permission=False,
         sub_cmd_name='editrole',
         sub_cmd_description='Edits a role on a created message',
         options=[

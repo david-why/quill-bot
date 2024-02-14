@@ -14,28 +14,16 @@ from interactions import (
 )
 
 from client import CustomClient
-from util import error_embed
+from util import error_embed, parse_time
 
 
 class QuoteCommandExtension(Extension):
     bot: CustomClient
 
-    def parse_time(self, timestr: str) -> Optional[Timestamp]:
-        formats = [
-            '%y-%m-%d %H:%M:%S',
-            '%y%m%d %H:%M:%S',
-            '%Y-%m-%d %H:%M:%S',
-            '%Y%m%d %H:%M:%S',
-        ]
-        for format in formats:
-            try:
-                return Timestamp.strptime(timestr, format)
-            except:
-                pass
-
     @slash_command(
         name='quote',
         description='Add a quote to the quotebook',
+        dm_permission=False,
         options=[
             SlashCommandOption(
                 name='from',
@@ -48,7 +36,7 @@ class QuoteCommandExtension(Extension):
                 description='The quote text',
             ),
             SlashCommandOption(
-                name='context',
+                name='ctx',
                 type=OptionType.STRING,
                 description='The context for this quote (why did they say this)',
                 required=False,
@@ -59,13 +47,13 @@ class QuoteCommandExtension(Extension):
                 description='The channel to send the quote, defaults to server setting',
                 required=False,
                 channel_types=[ChannelType.GUILD_TEXT],
-            )
-            # SlashCommandOption(
-            #     name='time',
-            #     type=OptionType.STRING,
-            #     description='The time of the quote (YYYY-MM-DD HH:MM:SS), defaults to now',
-            #     required=False,
-            # ),
+            ),
+            SlashCommandOption(
+                name='time',
+                type=OptionType.STRING,
+                description='The time of the quote (YYYY-MM-DD HH:MM:SS), defaults to now',
+                required=False,
+            ),
         ],
     )
     async def quote_command(self, ctx: InteractionContext):
@@ -74,18 +62,18 @@ class QuoteCommandExtension(Extension):
         quote: str = args['quote']
         if 'time' in args:
             timestr: str = args['time']
-            ts = self.parse_time(timestr)
-            if ts is None:
-                await ctx.send(
-                    embeds=error_embed(
-                        f'The time string given is unparseable: {timestr!r}'
-                    ),
+            user = self.bot.database.get_user(ctx.user.id)
+            if user.timezone is None:
+                return await ctx.send(
+                    'You need to set your timezone with /usersettings first!',
                     ephemeral=True,
                 )
-                return
+            ts = parse_time(timestr, user.timezone)
+            if ts is None:
+                return await ctx.send('Cannot parse the time string!', ephemeral=True)
         else:
             ts = Timestamp.now()
-        context: Optional[str] = args.get('context')
+        context: Optional[str] = args.get('ctx')
         if 'channel' in args:
             channel: TYPE_MESSAGEABLE_CHANNEL = args['channel']
         else:
@@ -106,22 +94,15 @@ class QuoteCommandExtension(Extension):
                     channel = chan
         quoter = ctx.member
         if quoter is None:
-            await ctx.send(embeds=error_embed('Unknown error -2'), ephemeral=True)
-            return
+            return await ctx.send(embeds=error_embed('Unknown error -2'), ephemeral=True)
         fields = []
         if context:
             fields.append(EmbedField('Context', context))
         quote_embed = Embed(
             title=f'Quote by {origin}', description=quote, fields=fields, timestamp=ts
         ).set_footer('Quoter: ' + quoter.display_name, quoter.display_avatar.url)
-        # channel = ctx.channel
         await channel.send(embeds=quote_embed)
         await ctx.send(content='Quote sent!', ephemeral=True)
-        # await ctx.send(embeds=quote_embed)
-
-    # @component_callback('hello_world_button')
-    # async def my_callback(self, ctx: ComponentContext):
-    #     await ctx.send('Hiya to you too')
 
 
 def setup(bot: CustomClient):

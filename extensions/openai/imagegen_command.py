@@ -1,23 +1,28 @@
 import asyncio
-import os
+import io
 import time
+from typing import cast
 
 import openai
+import requests
 from interactions import (
-    Embed,
-    EmbedAttachment,
     Extension,
+    File,
     InteractionContext,
     OptionType,
     SlashCommandOption,
     slash_command,
 )
-from openai.error import APIConnectionError
+from openai.error import APIConnectionError, InvalidRequestError, OpenAIError
 
 from client import CustomClient
 from util import tomorrow
 
 USER_LIMIT = 5
+
+
+class ImagegenError(RuntimeError):
+    pass
 
 
 async def create_image(**kwargs):
@@ -26,6 +31,10 @@ async def create_image(**kwargs):
             return await openai.Image.acreate(**kwargs)
         except APIConnectionError:
             await asyncio.sleep(0.2)
+        except OpenAIError as exc:
+            if getattr(exc, 'code', None) == 'contentFilter':
+                raise ImagegenError(exc.user_message)
+            raise
 
 
 class ImagegenCommandExtension(Extension):
@@ -52,27 +61,27 @@ class ImagegenCommandExtension(Extension):
             user.images_used = 0
             self.bot.database.set_user(user_id, user)
         if user.images_used > USER_LIMIT:
-            await ctx.send(
+            return await ctx.send(
                 f'Sorry, you exceeded {USER_LIMIT} images today. Try again tomorrow!',
                 ephemeral=True,
             )
-            return
         await ctx.defer()
-        image: dict = await create_image(prompt=prompt, n=1, size='512x512')  # type: ignore
+        try:
+            image = cast(dict, await create_image(prompt=prompt, n=1, size='512x512'))
+        except ImagegenError as exc:
+            return await ctx.send('**Error**: %s' % exc.args[0])
         image_url: str = image['data'][0]['url']
         print(image_url)
         user = self.bot.database.get_user(user_id)
         user.images_used += 1
         self.bot.database.set_user(user_id, user)
-        embed = Embed(images=[EmbedAttachment(image_url)])
-        await ctx.send('Here is the generated image!', embeds=embed)
-        # await ctx.send('Work In Progress', ephemeral=True)
+        r = requests.get(image_url)
+        buf = io.BytesIO(r.content)
+        await ctx.send(f'Here is the generated image!', files=File(buf, 'image.png'))
 
 
 def setup(bot: CustomClient):
-    token = os.getenv('OPENAI_TOKEN')
-    if token is None:
-        bot.logger.warning('OPENAI_TOKEN env var not found, not enabling imagegen')
-    else:
-        openai.api_key = token
+    if openai.api_key:
         ImagegenCommandExtension(bot)
+    else:
+        bot.logger.warning('openai.api_key not found, not enabling imagegen')

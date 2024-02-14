@@ -1,31 +1,23 @@
-from typing import List, cast, Optional
+from typing import Optional
 
 from interactions import (
-    ActionRow,
-    BaseComponent,
-    ComponentContext,
-    Button,
-    ButtonStyle,
-    Permissions,
+    TYPE_MESSAGEABLE_CHANNEL,
+    ChannelType,
     Embed,
     Extension,
+    GuildText,
     InteractionContext,
-    Role,
-    TYPE_MESSAGEABLE_CHANNEL,
-    RoleSelectMenu,
-    Guild,
+    OptionType,
+    Permissions,
+    SlashCommandOption,
     listen,
     slash_command,
-    SlashCommandOption,
-    ChannelType,
-    OptionType,
-    GuildText,
-    component_callback,
 )
 from interactions.api.events import MemberAdd, MemberRemove
-from util import build_message
-from database import MessageTemplate
+
 from client import CustomClient
+from database import MessageTemplate
+from util import build_message
 
 
 class GreetExtension(Extension):
@@ -34,6 +26,8 @@ class GreetExtension(Extension):
     @slash_command(
         'greet',
         description='Manages the welcome and goodbye messages',
+        default_member_permissions=Permissions.MANAGE_GUILD,
+        dm_permission=False,
         options=[
             SlashCommandOption(
                 name='channel',
@@ -116,7 +110,9 @@ class GreetExtension(Extension):
             if template is None:
                 template = MessageTemplate(welcome_text, welcome_title, welcome_body)
             if welcome_text is not None:
-                template.content = welcome_text.replace('\\n', '\n').replace('\\\\', '\\')
+                template.content = welcome_text.replace('\\n', '\n').replace(
+                    '\\\\', '\\'
+                )
             if welcome_title is not None:
                 template.title = welcome_title
             if welcome_body is not None:
@@ -129,7 +125,9 @@ class GreetExtension(Extension):
             if template is None:
                 template = MessageTemplate(goodbye_text, goodbye_title, goodbye_body)
             if goodbye_text is not None:
-                template.content = goodbye_text.replace('\\n', '\n').replace('\\\\', '\\')
+                template.content = goodbye_text.replace('\\n', '\n').replace(
+                    '\\\\', '\\'
+                )
             if goodbye_title is not None:
                 template.title = goodbye_title
             if goodbye_body is not None:

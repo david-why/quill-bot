@@ -9,8 +9,6 @@ from client import CustomClient
 from loader import load_extensions
 from log import init_logging
 
-DEBUG = False
-
 if 1001 not in client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES:
     client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES = (
         *client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES,
@@ -19,6 +17,8 @@ if 1001 not in client_const.RECOVERABLE_WEBSOCKET_CLOSE_CODES:
 
 dotenv.load_dotenv()
 init_logging()
+
+DEBUG = os.getenv('DEBUG') in ['True', 'true', '1']
 
 kwargs = dict(
     activity='/quote | /chat',
@@ -33,9 +33,6 @@ if DEBUG:
         raise ValueError('DEBUG_GUILD should be set to the server ID to debug in')
     kwargs.update(debug_scope=int(debug_guild_id))
     print(f'using debug_scope={debug_guild_id}')
-#     bot = CustomClient(activity='/quote', debug_scope=int(debug_guild_id))
-# else:
-#     bot = CustomClient(activity='/quote')
 
 bot = CustomClient(**kwargs)
 

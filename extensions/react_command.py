@@ -45,6 +45,7 @@ class ReactCommandExtension(Extension):
     @slash_command(
         'react',
         description='React to a message',
+        dm_permission=False,
         options=[
             SlashCommandOption(
                 name='message',
@@ -57,7 +58,6 @@ class ReactCommandExtension(Extension):
                 description='Emoji to react with',
             ),
         ],
-        dm_permission=False,
     )
     async def react_command(self, ctx: InteractionContext):
         message_id: str = ctx.kwargs['message'].strip()
@@ -82,6 +82,7 @@ class ReactCommandExtension(Extension):
     @slash_command(
         'customreact',
         description='React to a message with a custom image',
+        dm_permission=False,
         options=[
             SlashCommandOption(
                 name='message',
@@ -99,7 +100,6 @@ class ReactCommandExtension(Extension):
                 description='The name of the custom reaction',
             ),
         ],
-        dm_permission=False,
     )
     async def customreact_command(self, ctx: InteractionContext):
         message_id: str = ctx.kwargs['message'].strip()
@@ -110,8 +110,7 @@ class ReactCommandExtension(Extension):
         if image.size >= 256 * 1024:
             return await ctx.send('File must not be larger than 256K!', ephemeral=True)
         guild = ctx.guild
-        if guild is None:
-            return await ctx.send('This must be used in a server!', ephemeral=True)
+        assert guild
         await ctx.defer(ephemeral=True)
         message = await self.find_message(guild, message_id)
         if message is None:
@@ -119,7 +118,7 @@ class ReactCommandExtension(Extension):
         response = requests.get(image.url)
         file = BytesIO(response.content)
         try:
-            emoji = await guild.create_custom_emoji(name, file, [], reason='Custom reaction')
+            emoji = await guild.create_custom_emoji(name, file, reason='Custom reaction')
             assert emoji is not None
         except HTTPException as e:
             self.bot.logger.error(f'HTTP Error: {await e.response.json()}')

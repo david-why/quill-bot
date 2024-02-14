@@ -26,6 +26,6 @@ The following commands are used to create btnroles messages, an alternative to r
 The following commands require the `GRAPH_CLIENT_ID` environment variable set to the Client ID of an Azure application registration. Optionally, `GRAPH_TENANT` can be set to restrict the features to a specific tenant.
 - `/teams`: Connects a channel in the server to a Teams group chat. *WIP: Sometimes the subscription for Teams message dies?*
 
-The following commands require the `OPENAI_TOKEN` environment variable set to an OpenAI API token.
+The following commands require the `OPENAI_API_KEY` environment variable set to an OpenAI API token. You can also set more environment variables; for more information on environment variables, see `__init__.py` in the `openai` library.
 - `/chat`: Starts a chat with `gpt-3.5-turbo`. WARNING: This eats tokens (and therefore your money) really fast! Reply to bot messages to continue chatting. Each user has a 10,000 token limit per day.
 - `/imagegen prompt`: Generates an image with the DALL-E API with the prompt. The resolution is 512x512, so it costs you (at the time of writing) $0.018 per image. Each user has a 5 image limit per day.

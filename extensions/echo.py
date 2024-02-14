@@ -37,7 +37,8 @@ class EchoCommandExtension(Extension):
     async def echo_command(self, ctx: InteractionContext):
         args = ctx.kwargs
         message: str = args['message']
-        channel: Optional[TYPE_MESSAGEABLE_CHANNEL] = args.get('channel', ctx.channel)
+        channel: TYPE_MESSAGEABLE_CHANNEL = args.get('channel', ctx.channel)
+        self.bot.logger.info('%s echoed: %s', ctx.user, message)
         await channel.send(message.replace('\\n', '\n').replace('\\\\', '\\'))
         await ctx.send('Message sent!', ephemeral=True)
 

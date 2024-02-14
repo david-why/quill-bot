@@ -16,7 +16,9 @@ from util import error_embed
 class QuoteContextExtension(Extension):
     bot: CustomClient
 
-    @context_menu(name='Quote message', context_type=CommandType.MESSAGE)
+    @context_menu(
+        name='Quote message', context_type=CommandType.MESSAGE, dm_permission=False
+    )
     async def quote_context_menu(self, ctx: ContextMenuContext):
         message = ctx.target
         if message is None or not isinstance(message, Message):
@@ -54,14 +56,12 @@ class QuoteContextExtension(Extension):
             await channel.send(content=f'||{origin.mention}||', embeds=embed)
         except HTTPException as exc:
             if exc.status == 403:
-                await ctx.send(
+                return await ctx.send(
                     content='Lack permissions to send in channel', ephemeral=True
                 )
-            else:
-                raise
+            raise
         else:
             await ctx.send(content='Quote sent!', ephemeral=True)
-        # await ctx.send(content=f'||{origin.mention}||', embeds=embed)
 
 
 def setup(bot: CustomClient):

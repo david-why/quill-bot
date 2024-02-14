@@ -3,21 +3,21 @@ from typing import List, cast
 from interactions import (
     ActionRow,
     BaseComponent,
-    ComponentContext,
     Button,
     ButtonStyle,
-    Permissions,
+    ComponentContext,
     Embed,
     Extension,
+    Guild,
     InteractionContext,
+    Permissions,
     Role,
     RoleSelectMenu,
-    Guild,
+    component_callback,
     listen,
     slash_command,
-    component_callback,
 )
-from interactions.api.events import MemberAdd, Component
+from interactions.api.events import Component, MemberAdd
 
 from client import CustomClient
 
@@ -62,7 +62,11 @@ class AutorolesExtension(Extension):
         rows = ActionRow.split_components(*components)
         return embed, rows
 
-    @slash_command('autoroles', description='View and manage autoroles settings')
+    @slash_command(
+        'autoroles',
+        description='View and manage autoroles settings',
+        default_member_permissions=Permissions.MANAGE_ROLES,
+    )
     async def autoroles_command(self, ctx: InteractionContext):
         guild = ctx.guild
         if guild is None:
@@ -78,10 +82,6 @@ class AutorolesExtension(Extension):
         member = ctx.member
         if member is None:
             return await ctx.send('Wait, who was that?')
-        if not member.has_permission(Permissions.MANAGE_GUILD):
-            return await ctx.send(
-                'You must have the Manage Server permission!', ephemeral=True
-            )
         settings = self.bot.database.get_guild_settings(guild.id)
         if add_role.id in settings.autoroles:
             return await ctx.send('That role is already in autoroles!', ephemeral=True)
@@ -105,10 +105,6 @@ class AutorolesExtension(Extension):
         member = ctx.member
         if member is None:
             return await ctx.send('Wait, who was that?')
-        if not member.has_permission(Permissions.MANAGE_GUILD):
-            return await ctx.send(
-                'You must have the Manage Server permission!', ephemeral=True
-            )
         settings = self.bot.database.get_guild_settings(guild.id)
         if del_role_id not in settings.autoroles:
             return await ctx.send(
