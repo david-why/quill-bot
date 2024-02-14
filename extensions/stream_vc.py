@@ -1,4 +1,3 @@
-from asyncio import Lock
 import youtube_dl
 from interactions import (
     TYPE_VOICE_CHANNEL,
@@ -21,7 +20,6 @@ class StreamCommandExtension(Extension):
     def __init__(self, bot):
         super().__init__()
         self._state = None
-        self._playing = Lock()
 
     @slash_command(
         'stream',
